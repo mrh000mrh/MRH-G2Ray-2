@@ -37,6 +37,15 @@ info_path.write_text(json.dumps({
 }) + "\n")
 PY
 
+# ساخت لینک VLESS و ذخیره آن در فایل و در xray-info.json
+CODESPACE_NAME=${CODESPACE_NAME:-}
+if [ -n "$CODESPACE_NAME" ]; then
+    VLESS_LINK="vless://${XRAY_UUID}@${CODESPACE_NAME}-443.app.github.dev:443?encryption=none&security=tls&type=xhttp&mode=packet-up&sni=${CODESPACE_NAME}-443.app.github.dev&path=%2F#ghtun"
+    echo "$VLESS_LINK" > /workspaces/vless-link.txt
+    # اضافه کردن فیلد vless_link به فایل JSON (با استفاده از jq)
+    jq --arg link "$VLESS_LINK" '. + {vless_link: $link}' /opt/mrh-admin/xray-info.json > /tmp/xray-info-tmp.json && mv /tmp/xray-info-tmp.json /opt/mrh-admin/xray-info.json
+fi
+
 if ! pgrep -f "$XRAY_PROCESS_PATTERN" >/dev/null; then
   if sudo -n true >/dev/null 2>&1; then
     sudo nohup "$XRAY_BIN" -c "$XRAY_CONFIG" >/tmp/xray.log 2>&1 &
