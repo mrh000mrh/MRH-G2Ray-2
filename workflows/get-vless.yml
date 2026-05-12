@@ -1,0 +1,41 @@
+name: '🚀 ساخت کداسپیس و دریافت لینک VLESS'
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ایجاد کداسپیس
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          echo "⏳ در حال ساخت کداسپیس (حداکثر ۲ دقیقه)..."
+          CODESPACE_NAME=$(gh codespace create -r ${{ github.repository }} -m 2-core --display-name "MRH-Proxy" --status | jq -r '.name')
+          echo "CODESPACE_NAME=$CODESPACE_NAME" >> $GITHUB_ENV
+          echo "✅ کداسپیس با نام $CODESPACE_NAME ساخته شد."
+
+      - name: منتظر راه‌اندازی سرویس‌ها
+        run: |
+          echo "⏳ منتظر راه‌اندازی Xray و Admin Panel (۹۰ ثانیه)..."
+          sleep 90
+
+      - name: دریافت لینک VLESS از لاگ کداسپیس
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          echo "🔍 در حال جستجوی لینک VLESS..."
+          VLESS_LINK=$(gh codespace logs -c ${{ env.CODESPACE_NAME }} 2>&1 | grep -oE 'vless://[^ ]+' | head -1)
+          if [ -z "$VLESS_LINK" ]; then
+            echo "❌ خطا: لینک پیدا نشد."
+            exit 1
+          fi
+          echo "VLESS_LINK=$VLESS_LINK" >> $GITHUB_ENV
+
+      - name: نمایش لینک به کاربر
+        run: |
+          echo "🎉 لینک VLESS شما:"
+          echo "${{ env.VLESS_LINK }}"
+          echo "🆔 شناسه کداسپیس: ${{ env.CODESPACE_NAME }}"
+          echo "🌐 برای مدیریت: https://github.com/codespaces"
