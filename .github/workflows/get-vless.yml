@@ -17,15 +17,12 @@ jobs:
           echo "✅ کداسپیس با نام $CODESPACE_NAME ساخته شد."
 
       - name: منتظر راه‌اندازی سرویس‌ها
-        run: |
-          echo "⏳ منتظر راه‌اندازی Xray و Admin Panel (۹۰ ثانیه)..."
-          sleep 90
+        run: sleep 90
 
       - name: دریافت لینک VLESS از لاگ کداسپیس
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          echo "🔍 در حال جستجوی لینک VLESS..."
           VLESS_LINK=$(gh codespace logs -c ${{ env.CODESPACE_NAME }} 2>&1 | grep -oE 'vless://[^ ]+' | head -1)
           if [ -z "$VLESS_LINK" ]; then
             echo "❌ خطا: لینک پیدا نشد."
@@ -37,5 +34,15 @@ jobs:
         run: |
           echo "🎉 لینک VLESS شما:"
           echo "${{ env.VLESS_LINK }}"
-          echo "🆔 شناسه کداسپیس: ${{ env.CODESPACE_NAME }}"
-          echo "🌐 برای مدیریت: https://github.com/codespaces"
+
+      - name: ذخیره توکن در کداسپیس (برای Idle Monitor)
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          # ایجاد فایل مخفی حاوی توکن در کداسپیس
+          gh codespace exec -c ${{ env.CODESPACE_NAME }} -- bash -c "echo '$GH_TOKEN' > ~/.gh_token && chmod 600 ~/.gh_token"
+          echo "✅ توکن برای استفاده Idle Monitor در کداسپیس ذخیره شد."
+
+      - name: نگه داشتن کداسپیس فعال
+        run: |
+          echo "✅ کداسپیس فعال نگه داشته شد. Idle Monitor بعد از ۵ دقیقه بیکاری آن را متوقف می‌کند."
