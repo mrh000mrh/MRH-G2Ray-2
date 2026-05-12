@@ -7,6 +7,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: نصب jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
       - name: ایجاد کداسپیس
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -17,15 +20,19 @@ jobs:
           echo "✅ کداسپیس با نام $CODESPACE_NAME ساخته شد."
 
       - name: منتظر راه‌اندازی سرویس‌ها
-        run: sleep 90
+        run: |
+          echo "⏳ منتظر راه‌اندازی Xray و Admin Panel (حداکثر ۱۲۰ ثانیه)..."
+          sleep 120
 
       - name: دریافت لینک VLESS از لاگ کداسپیس
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
+          echo "🔍 در حال جستجوی لینک VLESS..."
           VLESS_LINK=$(gh codespace logs -c ${{ env.CODESPACE_NAME }} 2>&1 | grep -oE 'vless://[^ ]+' | head -1)
           if [ -z "$VLESS_LINK" ]; then
-            echo "❌ خطا: لینک پیدا نشد."
+            echo "❌ خطا: لینک پیدا نشد. لاگ کداسپیس:"
+            gh codespace logs -c ${{ env.CODESPACE_NAME }} 2>&1
             exit 1
           fi
           echo "VLESS_LINK=$VLESS_LINK" >> $GITHUB_ENV
@@ -39,10 +46,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          # ایجاد فایل مخفی حاوی توکن در کداسپیس
           gh codespace exec -c ${{ env.CODESPACE_NAME }} -- bash -c "echo '$GH_TOKEN' > ~/.gh_token && chmod 600 ~/.gh_token"
-          echo "✅ توکن برای استفاده Idle Monitor در کداسپیس ذخیره شد."
+          echo "✅ توکن ذخیره شد."
 
       - name: نگه داشتن کداسپیس فعال
         run: |
-          echo "✅ کداسپیس فعال نگه داشته شد. Idle Monitor بعد از ۵ دقیقه بیکاری آن را متوقف می‌کند."
+          echo "✅ کداسپیس فعال نگه داشته شد."
