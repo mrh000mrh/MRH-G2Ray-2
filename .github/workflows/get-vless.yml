@@ -20,19 +20,29 @@ jobs:
           echo "✅ کداسپیس با نام $CODESPACE_NAME ساخته شد."
 
       - name: منتظر راه‌اندازی سرویس‌ها
-        run: |
-          echo "⏳ منتظر راه‌اندازی Xray و Admin Panel (حداکثر ۱۲۰ ثانیه)..."
-          sleep 120
+        run: sleep 30  # فقط چند ثانیه برای شروع اولیه
 
-      - name: دریافت لینک VLESS از لاگ کداسپیس
+      - name: دریافت لینک VLESS از لاگ کداسپیس (با انتظار پویا)
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           echo "🔍 در حال جستجوی لینک VLESS..."
-          VLESS_LINK=$(gh codespace logs -c ${{ env.CODESPACE_NAME }} 2>&1 | grep -oE 'vless://[^ ]+' | head -1)
+          MAX_WAIT=300
+          INTERVAL=10
+          ELAPSED=0
+          VLESS_LINK=""
+          while [ $ELAPSED -lt $MAX_WAIT ]; do
+            VLESS_LINK=$(gh codespace logs -c ${{ env.CODESPACE_NAME }} 2>&1 | grep -oE 'vless://[^ ]+' | head -1)
+            if [ -n "$VLESS_LINK" ]; then
+              echo "✅ لینک پیدا شد بعد از ${ELAPSED} ثانیه."
+              break
+            fi
+            echo "⏳ منتظر آماده‌سازی... ${ELAPSED}s / ${MAX_WAIT}s"
+            sleep $INTERVAL
+            ELAPSED=$((ELAPSED + INTERVAL))
+          done
           if [ -z "$VLESS_LINK" ]; then
-            echo "❌ خطا: لینک پیدا نشد. لاگ کداسپیس:"
-            gh codespace logs -c ${{ env.CODESPACE_NAME }} 2>&1
+            echo "❌ خطا: پس از ${MAX_WAIT} ثانیه لینک پیدا نشد."
             exit 1
           fi
           echo "VLESS_LINK=$VLESS_LINK" >> $GITHUB_ENV
